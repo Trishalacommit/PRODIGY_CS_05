@@ -1,1 +1,48 @@
+import socket
+import struct
 
+def parse_ip_header(data):
+    # Unpack the IP header (assuming IPv4)
+    header = struct.unpack('!BBHHHBBH4s4s', data[:20])
+    version = header[0] >> 4
+    ihl = header[0] & 0xF
+    ttl = header[5]
+    protocol = header[6]
+    src_ip = socket.inet_ntoa(header[8])
+    dst_ip = socket.inet_ntoa(header[9])
+    return version, ihl, ttl, protocol, src_ip, dst_ip
+
+def sniff_packets():
+    # Create a raw socket to sniff packets
+    s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
+    
+    # Bind the socket to the network interface
+    s.bind(('YOUR_IP_ADDRESS', 0))  # Replace 'YOUR_IP_ADDRESS' with your actual IP address
+
+    # Include IP headers in the captured packets
+    s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+    
+    # Enable promiscuous mode (not recommended for real-world usage)
+    s.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
+
+    while True:
+        # Receive a packet
+        packet = s.recvfrom(65565)  # Adjust the buffer size as per your requirement
+        packet = packet[0]
+        
+        # Parse the IP header
+        version, ihl, ttl, protocol, src_ip, dst_ip = parse_ip_header(packet)
+
+        print(f'IP Version: {version}, Header Length: {ihl}, TTL: {ttl}')
+        print(f'Protocol: {protocol}, Source IP: {src_ip}, Destination IP: {dst_ip}')
+        
+        # You can add more parsing for other headers like TCP/UDP if needed
+
+        # Print the raw packet data
+        print('Packet Data:')
+        print(packet)
+
+        print('='*40)
+
+if __name__ == '__main__':
+    sniff_packets()
